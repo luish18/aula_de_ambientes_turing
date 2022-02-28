@@ -73,14 +73,13 @@ class snake_env(gym.Env):
 
         self.episode_reward = 0
 
-        #TODO: write __getitem__ method for point class
         obs = {
             "snake_position" : self.snake_pos(),
             "candy_position" : self.doce_pos(),
             "poison_position": self.veneno_pos(),
             "neighbor_cells" : {
-                "up"         : self.field[self.snake_pos[0] + 1, self.snake_pos[1]],
-                "down"       : self.field[self.snake_pos[0] - 1, self.snake_pos[1]],
+                "up"         : self.field[self.snake_pos[0] - 1, self.snake_pos[1]],
+                "down"       : self.field[self.snake_pos[0] + 1, self.snake_pos[1]],
                 "left"       : self.field[self.snake_pos[0], self.snake_pos[1] - 1],
                 "right"      : self.field[self.snake_pos[0], self.snake_pos[1] + 1]
             }
@@ -91,8 +90,16 @@ class snake_env(gym.Env):
     #TODO: write render method
     def render(self, mode="human"):
 
-        
+
         return super().render(mode)
+
+
+    def _take_action(self, action):
+
+        if action = 0:
+            
+
+
 
     def step(self, action):
         """
@@ -100,7 +107,7 @@ class snake_env(gym.Env):
         """
         #TODO: write step function
 
-        take_action()
+        _take_action(action)
         next_obs()
         reward()
         done_logic()

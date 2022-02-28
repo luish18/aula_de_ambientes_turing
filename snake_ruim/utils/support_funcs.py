@@ -27,6 +27,17 @@ class point():
 
         return True if ((self.xpos == other.xpos) and (self.ypos == other.ypos)) else False
 
+    def move(self, direction: str) -> None:
+
+        if direction == "up":
+            self.xpos -= 1
+        elif direction == "down":
+            self.xpos += 1
+        elif direction == "left":
+            self.ypos -= 1
+        elif direction == "right":
+            self.ypos += 1
+
     def update_pos(self, x: int, y: int):
 
         self.xpos = x
