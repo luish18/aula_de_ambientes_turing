@@ -15,6 +15,10 @@ class point():
         self.ypos = random.randint(low=1, high=lim)
 
 
+    def __getitem__ (self, key) -> int:
+
+        return (self.xpos, self.ypos)[key]
+
     def __call__(self) -> Tuple:
 
         return (self.xpos, self.ypos)
