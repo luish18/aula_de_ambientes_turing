@@ -3,6 +3,8 @@ import gym
 from gym import spaces
 from snake_ruim.utils.support_funcs import point
 import numpy as np
+from colorama import init
+from termcolor import colored
 
 
 class snake_env(gym.Env):
@@ -39,18 +41,42 @@ class snake_env(gym.Env):
 
         #inicializando campo
         self.field = np.zeros((self.field_size, self.field_size))
-        self._reset_field()
+        self._write_field()
 
-    def _reset_field(self) -> None:
+    def _write_field(self) -> None:
+        """
+        0: vazio
+        1: parede
+        2: veneno
+        3: doce
+        4: cobra
+        """
+        with np.nditer(self.field, flags=["multi_index"]) as it:
 
-        it = np.nditer(self.field, flags=["multi_index"])
+            for _ in it:
+                # montando paredes
+                if (it.multi_index[0] == 0) or (it.multi_index[1] == 0) or (it.multi_index[0] == (self.field_size - 1)) or (it.multi_index[1] == (self.field_size - 1)):
 
-        for _ in it:
-            # montando paredes
-            if (it.multi_index[0] == 0) or (it.multi_index[1] == 0) or (it.multi_index[0] == (self.field_size - 1)) or (it.multi_index[1] == (self.field_size - 1)):
-                self.field[it.multi_index] = 1
-            else:
-                self.field[it.multi_index] = 1
+                    self.field[it.multi_index] = 1
+
+                #posicionando venenos
+                elif it.multi_index == self.veneno_pos():
+
+                    self.field[it.multi_index] = 2
+
+                #posicionando doce
+                elif it.multi_index == self.doce_pos():
+
+                    self.field[it.multi_index] = 3
+ 
+                #posicionando cobra
+                elif it.multi_index == self.snake_pos():
+
+                    self.field[it.multi_index] = 2
+
+                #vazios
+                else:
+                    self.field[it.multi_index] = 0
 
 
 
@@ -91,11 +117,47 @@ class snake_env(gym.Env):
             }
         }
 
+        self._write_field()
+
         return obs
 
     #TODO: write render method
     def render(self, mode="human"):
 
+        #necessario para printar cores no terminal
+        init()
+
+        print(f"Episode return = {self.episode_return}\n Total steps = {self.step_count}")
+
+        with np.nditer(self.field, flags=["multi_index"]) as it:
+
+            for cell in it:
+                # montando paredes
+                if cell == 1:
+
+                    print("#", end="")
+                    if it.multi_index[1] == (self.field_size - 1):
+                        #adiciona \n no final do campo
+                        print("")
+
+                #posicionando venenos
+                elif cell == 2:
+
+                    print(colored("0", "red"), end="")
+
+                #posicionando doce
+                elif cell == 3:
+
+                    print(colored("0", "green"), end="")
+ 
+                #posicionando cobra
+                elif cell == 4:
+
+                    print(colored("C", "blue"), end="")
+
+                #vazios
+                else:
+                    print(" ", end="")
 
         return super().render(mode)
 
@@ -165,6 +227,7 @@ class snake_env(gym.Env):
         #retorna dicionario com as observacoes atuais
         obs = self._next_obs()
         reward, done = self._calculate_reward()
-
+        self.episode_return += reward
+        self.step_count += 1
 
         return obs, reward, done, {}
