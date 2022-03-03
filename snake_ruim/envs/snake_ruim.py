@@ -1,10 +1,13 @@
 from typing import Tuple
+from os import system
+from time import sleep
+from colorama import init
 import gym
 from gym import spaces
-from snake_ruim.utils.support_funcs import point
 import numpy as np
-from colorama import init
 from termcolor import colored
+
+from snake_ruim.utils.support_funcs import point
 
 
 class snake_env(gym.Env):
@@ -15,19 +18,19 @@ class snake_env(gym.Env):
 
 
         self.field_size : int = size
-
         #criando espaco de observacoes
-        self.observation_space = spaces.Dict({  #                                 posx                              posy
-                                                 "snake_position" : spaces.Tuple((spaces.Discrete(self.field_size), spaces.Discrete(self.field_size))),
-                                                 "candy_position" : spaces.Tuple((spaces.Discrete(self.field_size), spaces.Discrete(self.field_size))),
-                                                 "poison_position": spaces.Tuple((spaces.Discrete(self.field_size), spaces.Discrete(self.field_size))),
-                                                #estados das quatro celulas vizinhas (podem ser [vazio, parede, veneno, doce])
-                                                 "neighbor_cells" : spaces.Dict({
-                                                                                    "up"    : spaces.Discrete(4),
-                                                                                    "down"  : spaces.Discrete(4),
-                                                                                    "left"  : spaces.Discrete(4),
-                                                                                    "right" : spaces.Discrete(4)
-                                                                                })
+        self.observation_space = spaces.Dict({
+                                            "snake_positionx" : spaces.Discrete(self.field_size), 
+                                            "snake_positiony" : spaces.Discrete(self.field_size),
+                                            "candy_positionx" : spaces.Discrete(self.field_size), 
+                                            "candy_positiony" : spaces.Discrete(self.field_size),
+                                            "poison_positionx": spaces.Discrete(self.field_size), 
+                                            "poison_positiony" : spaces.Discrete(self.field_size),
+                                            #estados das quatro celulas vizinhas (podem ser [vazio, parede, veneno, doce])
+                                            "up"    : spaces.Discrete(5),
+                                            "down"  : spaces.Discrete(5),
+                                            "left"  : spaces.Discrete(5),
+                                            "right" : spaces.Discrete(5)
                                              })
 
         self.step_count = 0
@@ -40,7 +43,7 @@ class snake_env(gym.Env):
         self.snake_pos = point()
 
         #inicializando campo
-        self.field = np.zeros((self.field_size, self.field_size))
+        self.field = np.zeros((self.field_size, self.field_size), dtype=np.int32)
         self._write_field()
 
     def _write_field(self) -> None:
@@ -72,11 +75,12 @@ class snake_env(gym.Env):
                 #posicionando cobra
                 elif it.multi_index == self.snake_pos():
 
-                    self.field[it.multi_index] = 2
+                    self.field[it.multi_index] = 4
 
                 #vazios
                 else:
                     self.field[it.multi_index] = 0
+
 
 
 
@@ -85,8 +89,8 @@ class snake_env(gym.Env):
         gera uma posicao aleatoria do doce e do veneno diferentes entre si
         """
 
-        self.doce_pos.randomize(lim=self.field_size)
-        self.veneno_pos.randomize(lim=self.field_size)
+        self.doce_pos.randomize(lim=(self.field_size - 1))
+        self.veneno_pos.randomize(lim=(self.field_size - 1))
 
         #garante que posicao do doce e do veneno sao diferentes
         if (self.doce_pos == self.veneno_pos):
@@ -106,28 +110,33 @@ class snake_env(gym.Env):
         self.step_count = 0
 
         obs = {
-            "snake_position" : self.snake_pos(),
-            "candy_position" : self.doce_pos(),
-            "poison_position": self.veneno_pos(),
-            "neighbor_cells" : {
-                "up"         : self.field[self.snake_pos[0] - 1, self.snake_pos[1]],
-                "down"       : self.field[self.snake_pos[0] + 1, self.snake_pos[1]],
-                "left"       : self.field[self.snake_pos[0], self.snake_pos[1] - 1],
-                "right"      : self.field[self.snake_pos[0], self.snake_pos[1] + 1]
-            }
+            "snake_positionx" : self.snake_pos[0], 
+            "snake_positiony" : self.snake_pos[1],
+            "candy_positionx" : self.doce_pos[0], 
+            "candy_positiony" : self.doce_pos[1],
+            "poison_positionx": self.veneno_pos[0], 
+            "poison_positiony": self.veneno_pos[1],
+            #estados das quatro celulas vizinhas (podem ser [vazio, parede, veneno, doce])
+            "up"    : self.field[self.snake_pos[0] - 1, self.snake_pos[1]].item(),
+            "down"  : self.field[self.snake_pos[0] + 1, self.snake_pos[1]].item(),
+            "left"  : self.field[self.snake_pos[0], self.snake_pos[1] - 1].item(),
+            "right" : self.field[self.snake_pos[0], self.snake_pos[1] + 1].item()
         }
 
         self._write_field()
 
         return obs
 
-    #TODO: write render method
-    def render(self, mode="human"):
+    def render(self, mode="console"):
 
+        if mode != "console":
+            raise NotImplementedError()
+
+        system("clear")
         #necessario para printar cores no terminal
         init()
 
-        print(f"Episode return = {self.episode_return}\n Total steps = {self.step_count}")
+        print(f"Episode return = {self.episode_return}\nTotal steps = {self.step_count}")
 
         with np.nditer(self.field, flags=["multi_index"]) as it:
 
@@ -159,8 +168,7 @@ class snake_env(gym.Env):
                 else:
                     print(" ", end="")
 
-        return super().render(mode)
-
+        sleep(0.5)
 
     def _take_action(self, action):
 
@@ -173,18 +181,20 @@ class snake_env(gym.Env):
         elif action == 3:
             self.snake_pos.move("right")
 
-    def _next_obs(self):
+    def _obs(self):
 
         obs = {
-            "snake_position" : self.snake_pos(),
-            "candy_position" : self.doce_pos(),
-            "poison_position": self.veneno_pos(),
-            "neighbor_cells" : {
-                "up"         : self.field[self.snake_pos[0] - 1, self.snake_pos[1]],
-                "down"       : self.field[self.snake_pos[0] + 1, self.snake_pos[1]],
-                "left"       : self.field[self.snake_pos[0], self.snake_pos[1] - 1],
-                "right"      : self.field[self.snake_pos[0], self.snake_pos[1] + 1]
-            }
+            "snake_positionx" : self.snake_pos[0], 
+            "snake_positiony" : self.snake_pos[1],
+            "candy_positionx" : self.doce_pos[0], 
+            "candy_positiony" : self.doce_pos[1],
+            "poison_positionx": self.veneno_pos[0], 
+            "poison_positiony": self.veneno_pos[1],
+            #estados das quatro celulas vizinhas (podem ser [vazio, parede, veneno, doce])
+            "up"    : self.field[self.snake_pos[0] - 1, self.snake_pos[1]].item(),
+            "down"  : self.field[self.snake_pos[0] + 1, self.snake_pos[1]].item(),
+            "left"  : self.field[self.snake_pos[0], self.snake_pos[1] - 1].item(),
+            "right" : self.field[self.snake_pos[0], self.snake_pos[1] + 1].item()
         }
 
         return obs
@@ -196,25 +206,29 @@ class snake_env(gym.Env):
 
         if self.snake_pos == self.doce_pos:
 
-            reward += 10
+            reward += 100
             self._generate_doces()
 
         elif self.snake_pos == self.veneno_pos:
 
             reward -= 100
+            self._generate_doces()
             done = True
 
-        elif (self.snake_pos[0] == 0) or (self.snake_pos[1] == 0) or (self.snake_pos[0] == self.field_size) or (self.snake_pos[1] == self.field_size):
+        elif (self.snake_pos[0] == 0) or (self.snake_pos[1] == 0) or (self.snake_pos[0] == (self.field_size - 1)) or (self.snake_pos[1] == (self.field_size - 1)):
 
             reward -= 100
             done = True
 
-        else:
-
-            reward += 1
 
         return reward, done
 
+    def _print_info(self, action):
+        print(f"{self.snake_pos()=}")
+        print(f"{self.doce_pos()=}")
+        print(f"{self.veneno_pos()=}")
+        print(f"{action=}")
+        self.render()
 
     def step(self, action):
         """
@@ -224,10 +238,17 @@ class snake_env(gym.Env):
         #move o personagem na direcao de "action"
         self._take_action(action)
 
+        # self._print_info(action)
         #retorna dicionario com as observacoes atuais
-        obs = self._next_obs()
         reward, done = self._calculate_reward()
+
+        if not(done):
+            obs = self._obs()
+        else:
+            obs = {}
         self.episode_return += reward
         self.step_count += 1
+
+        self._write_field()
 
         return obs, reward, done, {}
